@@ -9,7 +9,7 @@
   - Sending value VAL to characteristic REQ triggers a notification NFY
   - Notification characteristic NFY receives values of type f7_data_t
 
-  Limitations (maybe I just don't know how...)
+  Limitations (I just don't know how: the Sapiential SpO2 android app can, Wearfit BO iOS apps can't)
 
   - The F7 device only advertises at startup
   - The F7 device only responds to one connection attempt
@@ -31,12 +31,13 @@ typedef struct {
 
 const uint32_t POLL_INTERVAL_MS = 1000;
 const uint32_t CONN_TIMEOUT_S = 5;
+const uint32_t SCAN_DURATION_S = 5;
 
 // state machine: scan <-> connect -> poll -> scan
 bool doConnect = false; // set to true if we find our service
 bool doPoll = false;    // set to true if we connected to our service
 
-NimBLEAdvertisedDevice *advDevice = nullptr;
+NimBLEAddress devAddress;
 
 // Notification callback
 void notifyCB(NimBLERemoteCharacteristic *pRemoteCharacteristic, uint8_t *pData,
@@ -61,6 +62,7 @@ void notifyCB(NimBLERemoteCharacteristic *pRemoteCharacteristic, uint8_t *pData,
 void scanEndedCB(NimBLEScanResults results) 
 { 
   Serial.println("Scan ended");
+  doConnect = true;
 }
 
 class ClientCallbacks : public NimBLEClientCallbacks {
@@ -69,7 +71,7 @@ class ClientCallbacks : public NimBLEClientCallbacks {
                   pClient->getPeerAddress().toString().c_str());
     doPoll = false;
     NimBLEDevice::deleteClient(pClient);
-    NimBLEDevice::getScan()->start(0, scanEndedCB);
+    NimBLEDevice::getScan()->start(SCAN_DURATION_S, scanEndedCB);
   };
 };
 
@@ -82,8 +84,7 @@ class AdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
       Serial.print("Found our service - ");
       Serial.println(advertisedDevice->toString().c_str());
       // Save the device in a global for the connect
-      advDevice = advertisedDevice;
-      doConnect = true;
+      devAddress = advertisedDevice->getAddress();
       NimBLEDevice::getScan()->stop();
     }
   };
@@ -113,6 +114,7 @@ bool subscribeToNotification(NimBLEClient *pClient) {
 
 // Connects to the F7 oximeter found by advertisements
 NimBLEClient *connectToServer() {
+  Serial.printf("Connect to %s\n", devAddress.toString().c_str());
   NimBLEClient *pClient = NimBLEDevice::createClient();
   if( pClient ) {
     pClient->setClientCallbacks(&clientCB, false);
@@ -124,11 +126,8 @@ NimBLEClient *connectToServer() {
     pClient->setConnectionParams(12, 12, 0, 60);
     pClient->setConnectTimeout(CONN_TIMEOUT_S);
 
-    if (pClient->connect(advDevice)) {
-      Serial.print("Connected to ");
-      Serial.print(pClient->getPeerAddress().toString().c_str());
-      Serial.print(" with RSSI ");
-      Serial.println(pClient->getRssi());
+    if (pClient->connect(devAddress)) {
+      Serial.printf("Connected with RSSI %d\n", pClient->getRssi());
 
       if( subscribeToNotification(pClient) ) {
         return pClient;
@@ -206,7 +205,7 @@ void loop() {
       doPoll = true;
     } else {
       Serial.println("Failed to connect - start new scan");
-      NimBLEDevice::getScan()->start(0, scanEndedCB);
+      NimBLEDevice::getScan()->start(SCAN_DURATION_S, scanEndedCB);
     }
   }
 
