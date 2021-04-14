@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include <NimBLEDevice.h>
+#include "wlan.h"
 
 /*
   Reverse engineered uuids and data formats of the F7 oximeter device
@@ -32,6 +33,8 @@ typedef struct {
 const uint32_t POLL_INTERVAL_MS = 1000;
 const uint32_t CONN_TIMEOUT_S = 5;
 const uint32_t SCAN_DURATION_S = 5;
+
+const char NAME[] = "oximeter";
 
 // state machine: scan <-> connect -> poll -> scan
 bool doConnect = false; // set to true if we find our service
@@ -180,12 +183,14 @@ void setup() {
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);  // +9db (default is 3db)
   NimBLEScan *pScan = NimBLEDevice::getScan();
   pScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());
-  pScan->setInterval(45);  // scan interval in ms
+  pScan->setInterval(45);  // scan interval in ms (leave room for wlan...)
   pScan->setWindow(15);  // scan duration in ms
   pScan->setActiveScan(true);
 
   Serial.printf("Starting scan for %s\n", DEV);
   pScan->start(0, scanEndedCB);  // start scan
+
+  startWlan(NAME);
 }
 
 void loop() {
