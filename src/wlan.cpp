@@ -12,6 +12,9 @@
 #include <WiFiUdp.h>
 #include <Syslog.h>
 
+// Post to InfluxDB
+#include <HTTPClient.h>
+
 // My ssid and password
 #include "WlanConfig.h"
 
@@ -25,6 +28,15 @@ static const char syslogServer[] = "job4";
 static const int syslogPort = 514;
 static WiFiUDP syslogUdp;
 static Syslog syslog(syslogUdp, SYSLOG_PROTO_IETF);
+
+// Post to InfluxDB (create database f7 in cli influx with 'create database f7')
+static const char influxServer[] = "job4";
+static const uint16_t influxPort = 8086;
+static const char influxUri[] = "/write?db=f7&precision=s";
+
+static WiFiClient influxWifi;
+static HTTPClient influxHttp;
+static int influxStatus = 0;
 
 // hostname pattern
 static const char hostFormat[] = "%s-%s";
@@ -43,11 +55,17 @@ static const char PAGE[] =
     "  <h1>F7 - Oximeter</h1>\n"
     "  <p>\n"
     "  <table>\n"
-    "   <tr><td>Device</td><td id='device'>00:00:00:00:00:00</td></tr>\n"
+    "   <tr><td>Device</td></tr>\n"
+    "   <tr><td>Id</td><td id='device'>00:00:00:00:00:00</td></tr>\n"
     "   <tr><td>Connected</td><td id='conn'>0</td></tr>\n"
+    "   <tr></tr>\n"
+    "   <tr><td>Data</td></tr>\n"
     "   <tr><td>SpO<sub>2</sub></td><td id='spo2'>0</td></tr>\n"
     "   <tr><td>Perfusionsindex</td><td id='pi'>0</td></tr>\n"
     "   <tr><td>Puls pro Minute</td><td id='ppm'>0</td></tr>\n"
+    "   <tr></tr>\n"
+    "   <tr><td>Database</td></tr>\n"
+    "   <tr><td>Influx Status</td><td id='influx'>0</td></tr>\n"
     "  </table>\n"
     "  </p>\n"
     "  <button type='button' onclick='window.location.href=\"update\"'>Firmware Update</button>\n"
@@ -64,6 +82,7 @@ static const char PAGE[] =
     "      document.getElementById('spo2').innerHTML = data.spo2;\n"
     "      document.getElementById('pi').innerHTML = data.dpi/10.0;\n"
     "      document.getElementById('ppm').innerHTML = data.ppm;\n"
+    "      document.getElementById('influx').innerHTML = data.influx;\n"
     "     }\n"
     "    };\n"
     "    xhttp.open('GET', 'json', true);\n"
@@ -80,16 +99,51 @@ void handleRoot() {
 void handleJson() {
   const char format[] =
       "{\"title\":\"%s\",\"device\":\"%s\",\"connected\":%u,\"spo2\":%u,"
-      "\"dpi\":%u,\"ppm\":%u}";
+      "\"dpi\":%u,\"ppm\":%u,\"influx\":%d}";
   char page[sizeof(format) + 100];
   snprintf(page, sizeof(page), format, WiFi.getHostname(),
            webData.f7Device, webData.f7Connected, webData.f7Data.spO2,
-           webData.f7Data.deziPI, webData.f7Data.ppm);
+           webData.f7Data.deziPI, webData.f7Data.ppm, influxStatus);
   httpServer.send(200, "application/json", page);
 }
 
 void handleNotFound() { 
   httpServer.send(404, "text/html", PAGE); 
+}
+
+void postInflux( const webData_t &data ) {
+  char fmt[] = "health,dev=\"%s\",ver=%u spo2=%u,pi=%u.%u,ppm=%u,conn=%u\n";
+  char msg[sizeof(fmt) + 100];
+  snprintf(msg, sizeof(msg), fmt, data.f7Device, 1, data.f7Data.spO2,
+           data.f7Data.deziPI / 10, data.f7Data.deziPI % 10, data.f7Data.ppm,
+           data.f7Connected);
+  influxHttp.begin(influxWifi, influxServer, influxPort, influxUri);
+  influxHttp.setUserAgent(data.firmware);
+  influxStatus = influxHttp.POST(msg);
+  influxHttp.end();
+}
+
+bool operator!=(const webData_t &lhs, const webData_t &rhs) {
+  return lhs.f7Connected != rhs.f7Connected ||
+         lhs.f7Data.spO2 != rhs.f7Data.spO2 ||
+         lhs.f7Data.deziPI != rhs.f7Data.deziPI ||
+         lhs.f7Data.ppm != rhs.f7Data.ppm ||
+         strcmp(lhs.f7Device, rhs.f7Device);
+}
+
+void handleInflux() {
+  static webData_t lastData = webData;
+  static int lastStatus = 0;
+
+  if( lastData != webData ) {
+    lastData = webData;
+    postInflux(lastData);
+  }
+
+  if( influxStatus != lastStatus ) {
+    lastStatus = influxStatus;
+    syslog.logf("Influx status: %d", influxStatus);
+  }
 }
 
 void setHostname() {
@@ -101,9 +155,9 @@ void setHostname() {
   WiFi.setHostname(hostName);
 }
 
-void handleF7ConnectLogs() { 
+void handleF7ConnectLogs() {
   static bool connected = false;
-  if (connected != webData.f7Connected) {
+  if( connected != webData.f7Connected ) {
     connected = webData.f7Connected;
     char msg[80];
     snprintf(msg, sizeof(msg), "Device %s %sconnected", webData.f7Device, connected ? "" : "dis");
@@ -150,6 +204,7 @@ void wlanTask( void *parms ) {
   for (;;) {
     httpServer.handleClient();
     handleF7ConnectLogs();
+    handleInflux();
     // We run in lowest priority, no need for a delay()...
   }
 }
@@ -159,5 +214,5 @@ void startWlan() {
   if (portNUM_PROCESSORS > 1 && xPortGetCoreID() == 0) {
     wlanCpuId = 1; // use the other core...
   }
-  xTaskCreatePinnedToCore(wlanTask, "wlan", 10240, nullptr, 0, nullptr, wlanCpuId);
+  xTaskCreatePinnedToCore(wlanTask, "wlan", 5*1024, nullptr, 0, nullptr, wlanCpuId);
 }
