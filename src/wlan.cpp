@@ -9,13 +9,22 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 
-// Ssid and password
+#include <WiFiUdp.h>
+#include <Syslog.h>
+
+// My ssid and password
 #include "WlanConfig.h"
 
 // NTP server parameters
-static const char *ntpServer = "de.pool.ntp.org";
+static const char ntpServer[] = "de.pool.ntp.org";
 static const long gmtOffset_sec = 3600;
 static const int daylightOffset_sec = 3600;
+
+// Syslog server
+static const char syslogServer[] = "job4";
+static const int syslogPort = 514;
+static WiFiUDP syslogUdp;
+static Syslog syslog(syslogUdp, SYSLOG_PROTO_IETF);
 
 // hostname pattern
 static const char hostFormat[] = "%s-%s";
@@ -41,8 +50,7 @@ static const char PAGE[] =
     "   <tr><td>Puls pro Minute</td><td id='ppm'>0</td></tr>\n"
     "  </table>\n"
     "  </p>\n"
-    "  <button type='button' "
-    "onclick='window.location.href=\"update\"'>Firmware Update</button>\n"
+    "  <button type='button' onclick='window.location.href=\"update\"'>Firmware Update</button>\n"
     "  <script>\n"
     "   setInterval(function() { getData(); }, 2000);\n"
     "   function getData() {\n"
@@ -93,6 +101,16 @@ void setHostname() {
   WiFi.setHostname(hostName);
 }
 
+void handleF7ConnectLogs() { 
+  static bool connected = false;
+  if (connected != webData.f7Connected) {
+    connected = webData.f7Connected;
+    char msg[80];
+    snprintf(msg, sizeof(msg), "Device %s %sconnected", webData.f7Device, connected ? "" : "dis");
+    syslog.log(LOG_NOTICE, msg); // logf() sometimes cut message or caused exceptions...
+  }
+}
+
 void wlanTask( void *parms ) {
   (void)parms;
 
@@ -102,10 +120,19 @@ void wlanTask( void *parms ) {
     WiFi.begin(WlanConfig::Ssid, WlanConfig::Password);
   } while (WiFi.waitForConnectResult() != WL_CONNECTED);
 
+  // Syslog setup
+  syslog.server(syslogServer, syslogPort);
+  syslog.deviceHostname(WiFi.getHostname());
+  syslog.appName("F7");
+  syslog.defaultPriority(LOG_KERN);
+
   configTime(gmtOffset_sec, daylightOffset_sec, WiFi.gatewayIP().toString().c_str(), ntpServer);
 
-  Serial.printf("Connected as %s with IP %s\n", WiFi.getHostname(),
-                WiFi.localIP().toString().c_str());
+  char msg[80];
+  snprintf(msg, sizeof(msg), "Host %s started with IP %s\n", WiFi.getHostname(),
+           WiFi.localIP().toString().c_str());
+  Serial.print(msg);
+  syslog.log(LOG_NOTICE, msg);
 
   MDNS.begin(WiFi.getHostname());
   httpUpdater.setup(&httpServer);
@@ -122,6 +149,7 @@ void wlanTask( void *parms ) {
 
   for (;;) {
     httpServer.handleClient();
+    handleF7ConnectLogs();
     // We run in lowest priority, no need for a delay()...
   }
 }
