@@ -2,6 +2,6 @@
 #define WLAN_h
 
 // call this to start wlan task
-void startWlan( const char *hostname );
+void startWlan();
 
 #endif

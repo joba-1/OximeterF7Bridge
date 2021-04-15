@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include <NimBLEDevice.h>
+#include "webdata.h"
 #include "wlan.h"
 
 /*
@@ -23,22 +24,15 @@ const char NFY[] = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
 const char REQ[] = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
 const char VAL[] = {0xab, 0x00, 0x03, 0xff, 0x30, 0x80};
 
-typedef struct {
-  uint8_t head[6];
-  uint8_t ppm;
-  uint8_t spO2;
-  uint8_t deziPI;
-} f7_data_t;
-
 const uint32_t POLL_INTERVAL_MS = 1000;
 const uint32_t CONN_TIMEOUT_S = 5;
 const uint32_t SCAN_DURATION_S = 5;
 
-const char NAME[] = "oximeter";
+const char FIRMWARE[] = "Oximeter";
 
-// state machine: scan <-> connect -> poll -> scan
+webData_t webData = { FIRMWARE, "scanning" };
+
 bool doConnect = false; // set to true if we find our service
-bool doPoll = false;    // set to true if we connected to our service
 
 NimBLEAddress devAddress;
 
@@ -46,7 +40,7 @@ NimBLEAddress devAddress;
 void notifyCB(NimBLERemoteCharacteristic *pRemoteCharacteristic, uint8_t *pData,
               size_t length, bool isNotify) {
   
-  f7_data_t *pDataF7 = (f7_data_t *)pData;
+  webData.f7Data = *(f7Data_t *)(pData + 6);
   
   Serial.print("Notification:");
   while (length--) {
@@ -54,11 +48,13 @@ void notifyCB(NimBLERemoteCharacteristic *pRemoteCharacteristic, uint8_t *pData,
   }
   Serial.println();
 
-  if (pDataF7->ppm && pDataF7->spO2 && pDataF7->deziPI) {
+  if (webData.f7Data.ppm && webData.f7Data.spO2 && webData.f7Data.deziPI) {
     NimBLEClient *pClient = pRemoteCharacteristic->getRemoteService()->getClient();
     Serial.printf("%s(%d) - SpO2: %u, Perfusionsindex: %u.%u, Puls: %u\n",
-      pClient->getPeerAddress().toString().c_str(), pClient->getRssi(),
-      pDataF7->spO2, pDataF7->deziPI / 10, pDataF7->deziPI % 10, pDataF7->ppm);
+                  pClient->getPeerAddress().toString().c_str(),
+                  pClient->getRssi(), webData.f7Data.spO2,
+                  webData.f7Data.deziPI / 10, webData.f7Data.deziPI % 10,
+                  webData.f7Data.ppm);
   }
 }
 
@@ -72,7 +68,7 @@ class ClientCallbacks : public NimBLEClientCallbacks {
   void onDisconnect(NimBLEClient *pClient) {
     Serial.printf("Disconnected %s - starting new scan\n",
                   pClient->getPeerAddress().toString().c_str());
-    doPoll = false;
+    webData.f7Connected = false;
     NimBLEDevice::deleteClient(pClient);
     NimBLEDevice::getScan()->start(SCAN_DURATION_S, scanEndedCB);
   };
@@ -88,6 +84,7 @@ class AdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
       Serial.println(advertisedDevice->toString().c_str());
       // Save the device in a global for the connect
       devAddress = advertisedDevice->getAddress();
+      strcpy(webData.f7Device, devAddress.toString().c_str());
       NimBLEDevice::getScan()->stop();
     }
   };
@@ -177,7 +174,7 @@ bool pollService( NimBLEClient *pClient ) {
 void setup() {
   Serial.begin(115200);
   Serial.println("\nOximeter F7 BLE client");
-  Serial.println("compiled " __DATE__ " " __TIME__);
+  Serial.println("Compiled " __DATE__ " " __TIME__);
 
   NimBLEDevice::init("");  // We dont advertise -> no device name
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);  // +9db (default is 3db)
@@ -190,24 +187,24 @@ void setup() {
   Serial.printf("Starting scan for %s\n", DEV);
   pScan->start(0, scanEndedCB);  // start scan
 
-  startWlan(NAME);
+  startWlan();
 }
 
 void loop() {
   static uint32_t lastPoll = 0;
   static NimBLEClient *pClient = nullptr;
 
-  if( doPoll ) {
+  if( webData.f7Connected ) {
     if( millis() - lastPoll > POLL_INTERVAL_MS ) {
       lastPoll = millis();
-      doPoll = pollService(pClient);
+      webData.f7Connected = pollService(pClient);
     }
   } else if( doConnect ) {
     doConnect = false;
     pClient = connectToServer();
     if( pClient ) {
       lastPoll = millis() - POLL_INTERVAL_MS;
-      doPoll = true;
+      webData.f7Connected = true;
     } else {
       Serial.println("Failed to connect - start new scan");
       NimBLEDevice::getScan()->start(SCAN_DURATION_S, scanEndedCB);
