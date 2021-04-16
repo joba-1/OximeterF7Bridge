@@ -1,8 +1,10 @@
 #include <Arduino.h>
 
 #include <NimBLEDevice.h>
+
 #include "webdata.h"
 #include "wlan.h"
+#include "led.h"
 
 /*
   Reverse engineered uuids and data formats of the F7 oximeter device
@@ -172,6 +174,8 @@ bool pollService( NimBLEClient *pClient ) {
 }
 
 void setup() {
+  startLed();
+
   Serial.begin(115200);
   Serial.println("\nOximeter F7 BLE client");
   Serial.println("Compiled " __DATE__ " " __TIME__);

@@ -20,5 +20,7 @@ typedef struct webData {
 } webData_t;
 
 extern webData_t webData;
+extern int influxStatus;
+extern bool wlanConnected;
 
 #endif

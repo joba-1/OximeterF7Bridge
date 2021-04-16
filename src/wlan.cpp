@@ -36,7 +36,7 @@ static const char influxUri[] = "/write?db=f7&precision=s";
 
 static WiFiClient influxWifi;
 static HTTPClient influxHttp;
-static int influxStatus = 0;
+int influxStatus = 0;
 
 // hostname pattern
 static const char hostFormat[] = "%s-%s";
@@ -44,6 +44,8 @@ static const char hostFormat[] = "%s-%s";
 // webserver and updater
 static WebServer httpServer(80);
 static HTTPUpdateServer httpUpdater;
+
+bool wlanConnected = false;
 
 static const char PAGE[] =
     "<!DOCTYPE html>\n"
@@ -174,6 +176,8 @@ void wlanTask( void *parms ) {
     WiFi.begin(WlanConfig::Ssid, WlanConfig::Password);
   } while (WiFi.waitForConnectResult() != WL_CONNECTED);
 
+  wlanConnected = true;
+
   // Syslog setup
   syslog.server(syslogServer, syslogPort);
   syslog.deviceHostname(WiFi.getHostname());
@@ -202,6 +206,7 @@ void wlanTask( void *parms ) {
   Serial.println(&t, "%A, %B %d %Y %H:%M:%S");
 
   for (;;) {
+    wlanConnected = WiFi.isConnected();
     httpServer.handleClient();
     handleF7ConnectLogs();
     handleInflux();
