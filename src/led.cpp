@@ -20,6 +20,8 @@ static const uint32_t influxErrorColor = Adafruit_NeoPixel::Color(maxRed / 2, 0,
 static const uint8_t neopixelPin = 27;
 static Adafruit_NeoPixel pixel = Adafruit_NeoPixel(1, neopixelPin, NEO_GRB + NEO_KHZ800);
 
+static volatile uint32_t buttonPressed = 0;
+
 const char *lastError = "OK";
 
 long getSpO2Health() {
@@ -112,24 +114,52 @@ uint32_t calculateColor() {
   return neutralColor;
 }
 
+// void IRAM_ATTR buttonISR() {
+//     buttonPressed++;
+// }
+
 void ledTask( void *parms ) {
   (void)parms;
 
   Serial.printf("Task '%s' running on core %u\n", pcTaskGetTaskName(NULL), xPortGetCoreID());
 
   static uint32_t lastColor = !startColor;
+  static bool useLed = true;
 
   pixel.begin(); // This initializes the NeoPixel library.
   pixel.setPixelColor(0, startColor);
   pixel.show();
 
+  pinMode(39, INPUT_PULLUP);
+  // attachInterrupt(39, buttonISR, FALLING);
+
   for (;;) {
-    uint32_t newColor = calculateColor();
-    if( newColor != lastColor ) {
-      lastColor = newColor;
-      pixel.setPixelColor(0, newColor);
-      pixel.show();
-      // Serial.println(lastError);
+    if( digitalRead(39) == LOW ) {
+      buttonPressed++;
+    } else {
+      buttonPressed = 0;
+    }
+
+    if( buttonPressed == 20 ) {
+      useLed = !useLed;
+      if( useLed ) {
+        Serial.println("LED on");
+      } else {
+        Serial.println("LED off");
+        pixel.setPixelColor(0, 0);
+        lastColor = 0;
+        pixel.show();
+      }
+    }
+
+    if( useLed ) {
+      uint32_t newColor = calculateColor();
+      if( newColor != lastColor ) {
+        lastColor = newColor;
+        pixel.setPixelColor(0, newColor);
+        pixel.show();
+        // Serial.println(lastError);
+      }
     }
     // We run in lowest priority, no need for a delay()...
   }
