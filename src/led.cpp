@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <freertos/task.h>
 
 #include "webdata.h"
 #include "led.h"
@@ -66,7 +67,7 @@ uint32_t healthColor() {
 
   health *= health;
   uint8_t green = map(health, 0, maxHealth * maxHealth, 0, maxGreen*3/4);
-  uint8_t red = map(health, maxHealth * maxHealth, 0, 0, maxRed*3/4);
+  uint8_t red = map(health, 0, maxHealth * maxHealth, maxRed*3/4, 0);
 
   return Adafruit_NeoPixel::Color(red, green, 0);
 }
@@ -75,13 +76,14 @@ uint32_t healthColor() {
 // If F7 is connected, use health status for a solid color
 uint32_t calculateColor() {
   static const uint32_t blinkInterval = 1000;
-  static const uint32_t blinkDuty = 200;
+  static const uint32_t blinkDuty = 250;
   static uint32_t blinkOffset = 0;
 
   uint32_t now = millis();
 
   if( blinkOffset == 0 || now - blinkOffset < blinkDuty ) {
-    blinkOffset = now;
+    if( !blinkOffset )
+      blinkOffset = now;
     return startColor;
   }
 
@@ -112,6 +114,8 @@ uint32_t calculateColor() {
 
 void ledTask( void *parms ) {
   (void)parms;
+
+  Serial.printf("Task '%s' running on core %u\n", pcTaskGetTaskName(NULL), xPortGetCoreID());
 
   static uint32_t lastColor = !startColor;
 

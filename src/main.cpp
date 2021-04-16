@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <freertos/task.h>
 
 #include <NimBLEDevice.h>
 
@@ -174,13 +175,14 @@ bool pollService( NimBLEClient *pClient ) {
 }
 
 void setup() {
-  startLed();
-
   Serial.begin(115200);
   Serial.println("\nOximeter F7 BLE client");
   Serial.println("Compiled " __DATE__ " " __TIME__);
+  Serial.printf("Task '%s' running on core %u\n", pcTaskGetTaskName(NULL), xPortGetCoreID());
 
-  NimBLEDevice::init("");  // We dont advertise -> no device name
+  startLed();
+
+  NimBLEDevice::init(""); // We dont advertise -> no device name
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);  // +9db (default is 3db)
   NimBLEScan *pScan = NimBLEDevice::getScan();
   pScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks());

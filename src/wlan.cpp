@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <freertos/task.h>
 
 #include "wlan.h"
 #include "webdata.h"
@@ -169,6 +170,8 @@ void handleF7ConnectLogs() {
 
 void wlanTask( void *parms ) {
   (void)parms;
+
+  Serial.printf("Task '%s' running on core %u\n", pcTaskGetTaskName(NULL), xPortGetCoreID());
 
   setHostname();
 
