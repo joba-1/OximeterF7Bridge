@@ -16,6 +16,8 @@ If you use another ESP32, you will need to adjust the neopixel and button pins i
 
 After first upload of firmware via USB port serial OTA update of the firmware is possible via http://oximeter-??????/update
 
+![F7 web page](pics/f7-oximeter-bridge-web-page.jpg)
+
 ## Features
 * Get oximeter data on serial port along with some runtime information
 * Use ESP32s own local webpage http://oximeter-??????/ to see oximeter data or to OTA upload a firmware update
@@ -33,8 +35,7 @@ After first upload of firmware via USB port serial OTA update of the firmware is
   - The solid color is overlayed by blinking light green to light red, depending on a not optimal to very bad perfusion index
 * Neopixel status display can be toggled with the button
 
-![F7 web page](pics/f7-oximeter-bridge-web-page.png)
-![F7 on grafana dashboard](pics/f7-oximeter-bridge-grafana.png)
+![F7 on grafana dashboard](pics/f7-oximeter-bridge-grafana.jpg)
 
 ## TODO
 * How to reconnect to an oximeter without the need to restart it  
