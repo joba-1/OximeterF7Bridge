@@ -8,6 +8,7 @@ This way you dont need to stay close to the device all the time to monitor the h
 ## Hardware
 No tinkering required at all. The M5 Atom lite ESP32 pico board has all thats needed on board: WLAN, BLE, a button and a Neopixel.
 If you use another ESP32, you will need to adjust the neopixel and button pins in the source (if needed).
+The oximeter is the one that runs with the Andoid app Sapiential SpO2 and the iOS app Wearfit BO. It identifies itself via bluetooth as F7.
 
 ## Software
 * All network data (WLAN, InfluxDB, optional Syslog) must be maintained in source - no online configuration yet.
