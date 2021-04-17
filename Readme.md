@@ -3,7 +3,8 @@
 connects an ESP32 to a BLE F7 Oximeter and reports SpO2, PI and PR on serial console, on a web page and to an Influx database.
 This way you dont need to stay close to the device all the time to monitor the health data.
 
-![F7 and Atom](pics/f7-oximeter-and-m5-atom-lite.png)
+![F7 and Atom](pics/f7-oximeter-and-m5-atom-lite.png)  
+F7 oximeter and M5 atom lite at work
 
 ## Hardware
 No tinkering required at all. The M5 Atom lite ESP32 pico board has all thats needed on board: WLAN, BLE, a button and a Neopixel.
@@ -17,7 +18,8 @@ The oximeter is the one that runs with the Andoid app Sapiential SpO2 and the iO
 
 After first upload of firmware via USB port serial OTA update of the firmware is possible via http://oximeter-??????/update
 
-![F7 web page](pics/f7-oximeter-bridge-web-page.jpg)
+![F7 web page](pics/f7-oximeter-bridge-web-page.jpg)  
+Example web page of the ESP32
 
 ## Features
 * Get oximeter data on serial port along with some runtime information
@@ -36,7 +38,8 @@ After first upload of firmware via USB port serial OTA update of the firmware is
   - The solid color is overlayed by blinking light green to light red, depending on a not optimal to very bad perfusion index
 * Neopixel status display can be toggled with the button
 
-![F7 on grafana dashboard](pics/f7-oximeter-bridge-grafana.jpg)
+![F7 on grafana dashboard](pics/f7-oximeter-bridge-grafana.jpg)  
+Example grafana dashboard using the influx data
 
 ## TODO
 * How to reconnect to an oximeter without the need to restart it  
