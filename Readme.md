@@ -18,21 +18,21 @@ After first upload of firmware via USB port serial OTA update of the firmware is
 * Use ESP32s own local webpage http://oximeter-??????/ to see oximeter data or to OTA upload a firmware update
 * Pull the data as json string from http://oximeter-??????/json, e.g. to feed it into domoticz or another home automation system
 * Scans for BLE advertisement packages an F7 oximeter sends at startup and connects to it
-* Regularly polls data from the oximeter and forwards the data to an influx db 'f7'
-          * Just create the database on the server configured in source, e.g. with the CLI command 'influx' enter 'create databse f7'
-          * The measurement table 'health' is automatically created and can be used to e.g. feed a grafana dashboard
-* Publishes the status via the Neopixel colors:
-            * Single white blink at startup
-          * Cyan blinking if not connected to WLAN
-          * Violet blinking if posting to Influx database fails
-          * Off while scanning for oximeter advertisements
-          * Solid green to red if connected to the oximeter. Green means healthy normal data and red means very unhealthy data
-          * The solid color is overlayed by blinking light green to light red, depending on a not optimal to very bad perfusion index
+* Regularly polls data from the oximeter and forwards the data to an influx db 'f7'  
+  - Just create the database on the server configured in source, e.g. with the CLI command 'influx' enter 'create databse f7'
+  - The measurement table 'health' is automatically created and can be used to e.g. feed a grafana dashboard
+* Publishes the status via the Neopixel colors:  
+  - Single white blink at startup
+  - Cyan blinking if not connected to WLAN
+  - Violet blinking if posting to Influx database fails
+  - Off while scanning for oximeter advertisements
+  - Solid green to red if connected to the oximeter. Green means healthy normal data and red means very unhealthy data
+  - The solid color is overlayed by blinking light green to light red, depending on a not optimal to very bad perfusion index
 * Neopixel status display can be toggled with the button
 
 ## TODO
-* How to reconnect to an oximeter without the need to restart it
-          * Android app of F7 can reconnect a lost BLE connection (closed app) without restarting the oximeter.
+* How to reconnect to an oximeter without the need to restart it  
+  - Android app of F7 can reconnect a lost BLE connection (closed app) without restarting the oximeter.
 * Use WlanManager to setup connection
 * Make all parameters online configurable
 
