@@ -44,7 +44,8 @@ After first upload of firmware via USB port serial OTA update of the firmware is
 * Make all parameters online configurable
 
 ## Links
-I am not related to these shops, it is just to show what I use and know it is working
+I am not related to these shops, it is just to show what I use and know it is working. 
+Both, M5 Atom Lite and Oximeter F7, cost only about 10€ each.
 * [M5Stack Atom Lite](https://eckstein-shop.de/M5Stack-ATOM-Lite-ESP32-Development-Kit-ESP32-PICO-Chip-mit-WiFi-und-Bluetooth)
 * [Option 1: SP001 - Fingertip Pulse Oximeter Bluetooth 4.0 Blood Oxygen Saturation Saturation SPO2 Heart Rate](https://a.aliexpress.com/_uXQZXl)
 * [Option 2: SPO2 PI PR bluetooth - Bluetooth Finger Pulse Oximeter Sleep monitoring data analysis Fingertip OLED](https://a.aliexpress.com/_vWpxsn)
