@@ -1,6 +1,7 @@
-# Oximeter F7 BLE Client
+# Oximeter F7 BLE Bridge
 
-connects an ESP32 to a BLE F7 Oximeter and reports SpO2, PI and PR on serial console, on a web page and to an Influx database
+connects an ESP32 to a BLE F7 Oximeter and reports SpO2, PI and PR on serial console, on a web page and to an Influx database.
+This way you dont need to stay close to the device all the time to monitor the health data.
 
 ## Hardware
 No tinkering required at all. The M5 Atom lite ESP32 pico board has all thats needed on board: WLAN, BLE, a button and a Neopixel.
