@@ -3,6 +3,8 @@
 connects an ESP32 to a BLE F7 Oximeter and reports SpO2, PI and PR on serial console, on a web page and to an Influx database.
 This way you dont need to stay close to the device all the time to monitor the health data.
 
+![F7 and Atom](pics/f7-oximeter-and-m5-atom-lite.png)
+
 ## Hardware
 No tinkering required at all. The M5 Atom lite ESP32 pico board has all thats needed on board: WLAN, BLE, a button and a Neopixel.
 If you use another ESP32, you will need to adjust the neopixel and button pins in the source (if needed).
@@ -30,6 +32,9 @@ After first upload of firmware via USB port serial OTA update of the firmware is
   - Solid green to red if connected to the oximeter. Green means healthy normal data and red means very unhealthy data
   - The solid color is overlayed by blinking light green to light red, depending on a not optimal to very bad perfusion index
 * Neopixel status display can be toggled with the button
+
+![F7 web page](pics/f7-oximeter-bridge-web-page.png)
+![F7 on grafana dashboard](pics/f7-oximeter-bridge-grafana.png)
 
 ## TODO
 * How to reconnect to an oximeter without the need to restart it  
