@@ -12,7 +12,7 @@
 
   - Custom service SVC of device DEV has 2 characteristics
   - Sending value VAL to characteristic REQ triggers a notification NFY
-  - Notification characteristic NFY receives values of type f7_data_t
+  - Notification characteristic NFY receives values of type f7Data_t
 
   Limitations (I just don't know how: the Sapiential SpO2 android app can, Wearfit BO iOS apps can't)
 
